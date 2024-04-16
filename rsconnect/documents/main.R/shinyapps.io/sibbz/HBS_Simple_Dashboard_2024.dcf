@@ -1,0 +1,13 @@
+name: HBS_Simple_Dashboard_2024
+title: HBS_Simple_Dashboard_2024
+username: sibbz
+account: sibbz
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 11762214
+bundleId: 8497981
+url: https://sibbz.shinyapps.io/HBS_Simple_Dashboard_2024/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: practice1.R|test.R
