@@ -1,0 +1,4 @@
+MYSQL_SURVEY_DB = "survey_dashboards"
+MYSQL_USER = "gaguilar"
+MYSQL_PWD = "P@ssw0rd10"
+MYSQL_HOST = "200.32.244.19"

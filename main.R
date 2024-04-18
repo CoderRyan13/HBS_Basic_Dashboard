@@ -54,12 +54,20 @@ result5 <- dbGetQuery(connection,tablequery5);
 plotquery1 <- "SELECT name, age FROM hbs_listing_roster";
 result6 <- dbGetQuery(connection, plotquery1);
 
-result7 <- c(2, 4, 1, 5, 10);
-
 # loading the dataset
 data <- as.data.frame(Titanic);
 # Building a table with the data for the plot
 PD <- data |> group_by(Class, Survived) |> summarise(n = sum(Freq));
+
+
+setwd("C:\\Users\\sib_temp\\Music\\HBS_2024")
+
+usaLat <- 36.5588659
+usaLon <- -107.6660877
+usaZoom <- 3
+
+mapdata <- read.csv("airports.csv")
+#head(mapdata)
 
 ui <- dashboardPage(
   skin = "green",
@@ -83,11 +91,15 @@ ui <- dashboardPage(
       ),
       menuItem("Payment", tabName = "payment", icon = icon("hand-holding-dollar")),
       menuItem("Maps", tabName = "maps", icon = icon("map"),
-               menuSubItem("Response", tabName = "responsemap"))
+               menuSubItem("Response", tabName = "responsemap")),
+      menuItem("Visuals", tabName = "visuals", icon = icon("chart-line"))
     )
   ),
   dashboardBody(
     tabItems(
+      tabItem("visuals", fluidPage(
+        "Visuals"
+      )),
       tabItem("home", fluidPage(
         # Boxes need to be put in a row (or column)
         fluidRow(
@@ -540,11 +552,12 @@ ui <- dashboardPage(
               )
       ),
       tabItem("responsemap", fluidPage(
-        h4("Punta Gorda"),
-        m <- leaflet() |>
-          addTiles() |>  # Add default OpenStreetMap map tiles
-          addMarkers(lng=-88.803627, lat=16.101311, popup="The birthplace of R"),
-        m  # Print the map
+        h4("US Airports"),
+        leaflet(data = mapdata) %>%
+          setView(lat = usaLat, lng = usaLon, zoom = usaZoom) %>%
+          addTiles() %>%
+          addMarkers(~LONGITUDE, ~LATITUDE, popup = ~AIRPORT, label = ~AIRPORT) %>%
+          addProviderTiles(providers$Esri.WorldStreetMap)
       )
       )
     )
@@ -576,7 +589,6 @@ server <- function(input, output) {
     # Pie-Donut chart
     PieDonut(PD, aes(Class, Survived, count=n), title = "Titanic: Survival by Class")
   )
-  
 
 }
 
