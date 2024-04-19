@@ -205,3 +205,76 @@ URdatatable <- data.frame(
 #data <- as.data.frame(Titanic);
 # Building a table with the data for the plot
 PD <- result7 |> group_by(sex) |> summarise(sum(as.integer(as.character(sex))))
+
+
+
+
+get_household_metrics <- function(level){
+
+  # if (level == 'National'){
+  #   level_grouped <- 
+  #     households 
+  # } else if (level %in% c('DISTRICT', 'URBAN_RURAL')) {
+  #   level_grouped <- 
+  #     households |>
+  #     group_by(!!as.name(level))
+  # } else {
+  #   level_grouped <- 
+  #     households |>
+  #     group_by(DISTRICT, !!as.name(level))
+  # }
+  
+  #level_summary <- 
+    
+    level_grouped |> 
+    mutate(
+      males_hh_members = as.numeric(males_hh_members),
+      females_hh_members = as.numeric(females_hh_members),
+      total_hh_members = as.numeric(total_hh_members)
+    ) |>
+    summarise(
+      Questionnaires = n(),
+      `Respondent HHs` = sum(FINALRESULT %in% c('Completed', 'Partially Completed'), na.rm = T),
+      `Avg Males` = mean(males_hh_members, na.rm = T) |> round(1),
+      `Avg Females` = mean(females_hh_members, na.rm = T) |> round(1),
+      `Avg HH Size` = mean(total_hh_members, na.rm = T) |> round(1)
+    )
+  
+  return(level_summary)
+}
+
+
+listing <- 
+  listing |>
+  left_join(
+    households_vars, by = 'interview__key'
+  )
+
+hh_vars <- 
+  households |>
+  group_by(urban_rural) |>
+  summarise(
+    Questionnaires = n(),
+    Respondents = sum(FINALRESULT_hh %in% c('1', '2'), na.rm = T)
+  )
+
+listing_vars <- 
+listing |>
+  group_by(urban_rural, interview__key) |>
+  summarise(
+    Males = sum(sex == 1, na.rm = T),
+    Females = sum(sex == 2, na.rm = T)
+  ) |>
+  group_by(urban_rural) |>
+  summarise(
+    'Avg Males' = mean(Males, na.rm = T),
+    `Avg Females` = mean(Females, na.rm = T)
+  )
+
+
+hh_vars |>
+  left_join(
+    listing_vars,
+    by = 'urban_rural'
+  )
+

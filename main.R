@@ -16,12 +16,38 @@ library(DBI)
 library(RMySQL)
 library(ggplot2)
 # creating a database connection
-connection <- dbConnect(RMySQL::MySQL(), 
-                        dbname = Sys.getenv("MYSQL_SURVEY_DB"), 
-                        host = Sys.getenv("MYSQL_HOST"), 
-                        port = 3306, 
-                        user = Sys.getenv("MYSQL_USER"), 
-                        password = Sys.getenv("MYSQL_PWD"))
+
+
+connectDB <- function(){
+  connection <- dbConnect(RMySQL::MySQL(), 
+                          dbname = Sys.getenv("MYSQL_SURVEY_DB"), 
+                          host = Sys.getenv("MYSQL_HOST"), 
+                          port = 3306, 
+                          user = Sys.getenv("MYSQL_USER"), 
+                          password = Sys.getenv("MYSQL_PWD"))
+  return(connection)
+}
+
+fetchWholeTable <- function(table){
+  d2 <- connectDB()
+  
+  data <- dbReadTable(d2, table)
+  
+  dbDisconnect(d2)
+  
+  data
+}
+
+fetchQuery <- function(q){
+  d2 <- connectDB()
+  
+  data <- dbGetQuery(d2, q)
+  
+  dbDisconnect(d2)
+  
+  data
+}
+
 
 
 set_credentials(
@@ -36,23 +62,33 @@ set_credentials(
 # result <- dbGetQuery(connection,query);
 # print(result)
 
-tablequery1 <- "SELECT * FROM hbs_consumption_pattern_roster";
-result1 <- dbGetQuery(connection,tablequery1);
+consumption <- fetchWholeTable('hbs_consumption_pattern_roster')
 
-tablequery2 <- "SELECT * FROM hbs_ff_roster";
-result2 <- dbGetQuery(connection,tablequery2);
 
-tablequery3 <- "SELECT * FROM hbs_listing_roster";
-result3 <- dbGetQuery(connection,tablequery3);
+households <- fetchWholeTable('hbs_household')
 
-tablequery4 <- "SELECT * FROM hbs_transportation_1";
-result4 <- dbGetQuery(connection,tablequery4);
 
-tablequery5 <- "SELECT * FROM hbs_transportation_2";
-result5 <- dbGetQuery(connection,tablequery5);
+listing <- fetchWholeTable('hbs_listing_roster')
 
-plotquery1 <- "SELECT name, age FROM hbs_listing_roster";
-result6 <- dbGetQuery(connection, plotquery1);
+
+
+cbind(hh_vars, listing_vars)
+
+# 
+# tablequery2 <- "SELECT * FROM hbs_ff_roster";
+# result2 <- dbGetQuery(connection,tablequery2);
+# 
+# tablequery3 <- "SELECT * FROM hbs_listing_roster";
+# result3 <- dbGetQuery(connection,tablequery3);
+# 
+# tablequery4 <- "SELECT * FROM hbs_transportation_1";
+# result4 <- dbGetQuery(connection,tablequery4);
+# 
+# tablequery5 <- "SELECT * FROM hbs_transportation_2";
+# result5 <- dbGetQuery(connection,tablequery5);
+# 
+# plotquery1 <- "SELECT name, age FROM hbs_listing_roster";
+# result6 <- dbGetQuery(connection, plotquery1);
 
 # loading the dataset
 data <- as.data.frame(Titanic);
