@@ -16,12 +16,35 @@ library(DBI)
 library(RMySQL)
 library(ggplot2)
 # creating a database connection
-connection <- dbConnect(RMySQL::MySQL(), 
-                        dbname = Sys.getenv("MYSQL_SURVEY_DB"), 
-                        host = Sys.getenv("MYSQL_HOST"), 
-                        port = 3306, 
-                        user = Sys.getenv("MYSQL_USER"), 
-                        password = Sys.getenv("MYSQL_PWD"))
+connectDB <- function(){
+  connection <- dbConnect(RMySQL::MySQL(), 
+                          dbname = Sys.getenv("MYSQL_SURVEY_DB"), 
+                          host = Sys.getenv("MYSQL_HOST"), 
+                          port = 3306, 
+                          user = Sys.getenv("MYSQL_USER"), 
+                          password = Sys.getenv("MYSQL_PWD"))
+  return(connection)
+}
+
+fetchWholeTable <- function(table){
+  d2 <- connectDB()
+  
+  data <- dbReadTable(d2, table)
+  
+  dbDisconnect(d2)
+  
+  data
+}
+
+fetchQuery <- function(q){
+  d2 <- connectDB()
+  
+  data <- dbGetQuery(d2, q)
+  
+  dbDisconnect(d2)
+  
+  data
+}
 
 
 set_credentials(
@@ -30,6 +53,35 @@ set_credentials(
   user = "gapi",
   password = "API4statistics!"
 )
+
+
+consumption <- fetchWholeTable('hbs_consumption_pattern_roster')
+
+
+households <- fetchWholeTable('hbs_household')
+
+
+listing <- fetchWholeTable('hbs_listing_roster')
+
+
+hh_val <- 
+  households |>
+  group_by(urban_rural) |>
+  summarise(
+    `Response %` = paste0(50, '%'),
+    `Complete %` = paste0(45, '%'),
+    Completed = sum(FINALRESULT_hh %in% 1, na.rm = T),
+    Partial = sum(FINALRESULT_hh %in% 2, na.rm = T),
+    `Vacant Dwelling` = sum(FINALRESULT_hh %in% 3, na.rm = T),
+    Refusal = sum(FINALRESULT_hh %in% 4, na.rm = T),
+    `A.N.F` = sum(FINALRESULT_hh %in% 5, na.rm = T),
+    `N.S.R` = sum(FINALRESULT_hh %in% 6, na.rm = T),
+    `No Contact` = sum(FINALRESULT_hh %in% 7, na.rm = T),
+    `Vacant Lot` = sum(FINALRESULT_hh %in% 8, na.rm = T),
+    `U.C/N.L` = sum(FINALRESULT_hh %in% 9, na.rm = T),
+    Other = sum(FINALRESULT_hh %in% 10, na.rm = T)
+  )
+
 
 # query <- "show tables";
 # result <- dbGetQuery(connection,query);
@@ -205,3 +257,76 @@ URdatatable <- data.frame(
 #data <- as.data.frame(Titanic);
 # Building a table with the data for the plot
 PD <- result7 |> group_by(sex) |> summarise(sum(as.integer(as.character(sex))))
+
+
+
+
+get_household_metrics <- function(level){
+
+  # if (level == 'National'){
+  #   level_grouped <- 
+  #     households 
+  # } else if (level %in% c('DISTRICT', 'URBAN_RURAL')) {
+  #   level_grouped <- 
+  #     households |>
+  #     group_by(!!as.name(level))
+  # } else {
+  #   level_grouped <- 
+  #     households |>
+  #     group_by(DISTRICT, !!as.name(level))
+  # }
+  
+  #level_summary <- 
+    
+    level_grouped |> 
+    mutate(
+      males_hh_members = as.numeric(males_hh_members),
+      females_hh_members = as.numeric(females_hh_members),
+      total_hh_members = as.numeric(total_hh_members)
+    ) |>
+    summarise(
+      Questionnaires = n(),
+      `Respondent HHs` = sum(FINALRESULT %in% c('Completed', 'Partially Completed'), na.rm = T),
+      `Avg Males` = mean(males_hh_members, na.rm = T) |> round(1),
+      `Avg Females` = mean(females_hh_members, na.rm = T) |> round(1),
+      `Avg HH Size` = mean(total_hh_members, na.rm = T) |> round(1)
+    )
+  
+  return(level_summary)
+}
+
+
+listing <- 
+  listing |>
+  left_join(
+    households_vars, by = 'interview__key'
+  )
+
+hh_vars <- 
+  households |>
+  group_by(urban_rural) |>
+  summarise(
+    Questionnaires = n(),
+    Respondents = sum(FINALRESULT_hh %in% c('1', '2'), na.rm = T)
+  )
+
+listing_vars <- 
+listing |>
+  group_by(urban_rural, interview__key) |>
+  summarise(
+    Males = sum(sex == 1, na.rm = T),
+    Females = sum(sex == 2, na.rm = T)
+  ) |>
+  group_by(urban_rural) |>
+  summarise(
+    'Avg Males' = mean(Males, na.rm = T),
+    `Avg Females` = mean(Females, na.rm = T)
+  )
+
+
+hh_vars |>
+  left_join(
+    listing_vars,
+    by = 'urban_rural'
+  )
+

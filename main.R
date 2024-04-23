@@ -16,12 +16,216 @@ library(DBI)
 library(RMySQL)
 library(ggplot2)
 # creating a database connection
-connection <- dbConnect(RMySQL::MySQL(), 
-                        dbname = Sys.getenv("MYSQL_SURVEY_DB"), 
-                        host = Sys.getenv("MYSQL_HOST"), 
-                        port = 3306, 
-                        user = Sys.getenv("MYSQL_USER"), 
-                        password = Sys.getenv("MYSQL_PWD"))
+
+
+connectDB <- function(){
+  connection <- dbConnect(RMySQL::MySQL(), 
+                          dbname = Sys.getenv("MYSQL_SURVEY_DB"), 
+                          host = Sys.getenv("MYSQL_HOST"), 
+                          port = 3306, 
+                          user = Sys.getenv("MYSQL_USER"), 
+                          password = Sys.getenv("MYSQL_PWD"))
+  return(connection)
+}
+
+fetchWholeTable <- function(table){
+  d2 <- connectDB()
+  
+  data <- dbReadTable(d2, table)
+  
+  dbDisconnect(d2)
+  
+  data
+}
+
+fetchQuery <- function(q){
+  d2 <- connectDB()
+  
+  data <- dbGetQuery(d2, q)
+  
+  dbDisconnect(d2)
+  
+  data
+}
+
+level_choices <-
+  c(
+    'national',
+    'urban_rural',
+    'district',
+    'ED_number'
+  )
+
+names(level_choices) <- 
+  c(
+    'National',
+    'Urban Rural',
+    'Distirct',
+    'ED'
+  )
+
+calculateHHMetric <- function(val) {
+  if (val == 'national'){
+    
+    hh_vars <- 
+      households |>
+      summarise(
+        Questionnaires = n(),
+        Respondents = sum(FINALRESULT_hh %in% c('1', '2'), na.rm = T)
+      )
+    
+    
+    listing_vars <-
+      listing |>
+      summarise(
+        Males = sum(sex == 1, na.rm = T),
+        Females = sum(sex == 2, na.rm = T)
+      ) |> 
+      summarise(
+        'Avg Males' = mean(Males, na.rm = T),
+        `Avg Females` = mean(Females, na.rm = T)
+      )
+    
+    
+    df <- cbind(hh_vars, listing_vars)
+    
+  } else {
+    
+    hh_vars <- 
+      households |>
+      group_by(!!as.name(val)) |>
+      summarise(
+        Questionnaires = n(),
+        Respondents = sum(FINALRESULT_hh %in% c('1', '2'), na.rm = T)
+      )
+    
+    
+    listing_vars <-
+      listing |>
+      group_by(!!as.name(val), interview__key) |>
+      summarise(
+        Males = sum(sex == 1, na.rm = T),
+        Females = sum(sex == 2, na.rm = T)
+      ) |>
+      group_by(!!as.name(val)) |>
+      summarise(
+        'Avg Males' = mean(Males, na.rm = T),
+        `Avg Females` = mean(Females, na.rm = T)
+      )
+    
+    
+    df <- hh_vars |>
+      left_join(
+        listing_vars,
+        by = val
+      )
+  }
+  reactable(df)
+}
+
+
+calculateHHResponse <- function(val) {
+  if (val == 'national'){
+    hh_val <- 
+      households |>
+      summarise(
+        `Response %` = paste0(sprintf(((sum(FINALRESULT_hh %in% 1, na.rm = T)+sum(FINALRESULT_hh %in% 2, na.rm = T))/
+                                 (sum(FINALRESULT_hh %in% 1, na.rm = T)+sum(FINALRESULT_hh %in% 2, na.rm = T)+
+                                    sum(FINALRESULT_hh %in% 4, na.rm = T)+sum(FINALRESULT_hh %in% 6, na.rm = T)+
+                                    sum(FINALRESULT_hh %in% 7, na.rm = T))), fmt = '%.1f'), '%'), 
+        `Complete %` = paste0(sprintf(sum(FINALRESULT_hh %in% 1, na.rm = T)/(sum(FINALRESULT_hh %in% 2, na.rm = T)+
+                                                                       sum(FINALRESULT_hh %in% 3, na.rm = T)+
+                                                                       sum(FINALRESULT_hh %in% 4, na.rm = T)+
+                                                                       sum(FINALRESULT_hh %in% 5, na.rm = T)+
+                                                                       sum(FINALRESULT_hh %in% 6, na.rm = T)+
+                                                                       sum(FINALRESULT_hh %in% 7, na.rm = T)+
+                                                                       sum(FINALRESULT_hh %in% 8, na.rm = T)+
+                                                                       sum(FINALRESULT_hh %in% 9, na.rm = T)+
+                                                                       sum(FINALRESULT_hh %in% 0, na.rm = T)), fmt = '%.1f'), '%'),
+        Completed = sum(FINALRESULT_hh %in% 1, na.rm = T),
+        Partial = sum(FINALRESULT_hh %in% 2, na.rm = T),
+        `Vacant Dwelling` = sum(FINALRESULT_hh %in% 3, na.rm = T),
+        Refusal = sum(FINALRESULT_hh %in% 4, na.rm = T),
+        `A.N.F` = sum(FINALRESULT_hh %in% 5, na.rm = T),
+        `N.S.R` = sum(FINALRESULT_hh %in% 6, na.rm = T),
+        `No Contact` = sum(FINALRESULT_hh %in% 7, na.rm = T),
+        `Vacant Lot` = sum(FINALRESULT_hh %in% 8, na.rm = T),
+        `U.C/N.L` = sum(FINALRESULT_hh %in% 9, na.rm = T),
+        Other = sum(FINALRESULT_hh %in% 0, na.rm = T)
+      )
+    
+  } else {
+    
+    hh_val <- 
+      households |>
+      group_by(!!as.name(val)) |>
+      summarise(
+        `Response %` = paste0(sprintf(((sum(FINALRESULT_hh %in% 1, na.rm = T)+
+                                          sum(FINALRESULT_hh %in% 2, na.rm = T))/
+                                         (sum(FINALRESULT_hh %in% 1, na.rm = T)+
+                                            sum(FINALRESULT_hh %in% 2, na.rm = T)+
+                                            sum(FINALRESULT_hh %in% 4, na.rm = T)+
+                                            sum(FINALRESULT_hh %in% 6, na.rm = T)+
+                                            sum(FINALRESULT_hh %in% 7, na.rm = T))), fmt = '%.1f'), '%'), 
+        `Complete %` = paste0(sprintf(sum(FINALRESULT_hh %in% 1, na.rm = T)/(sum(FINALRESULT_hh %in% 2, na.rm = T)+
+                                                                               sum(FINALRESULT_hh %in% 3, na.rm = T)+
+                                                                               sum(FINALRESULT_hh %in% 4, na.rm = T)+
+                                                                               sum(FINALRESULT_hh %in% 5, na.rm = T)+
+                                                                               sum(FINALRESULT_hh %in% 6, na.rm = T)+
+                                                                               sum(FINALRESULT_hh %in% 7, na.rm = T)+
+                                                                               sum(FINALRESULT_hh %in% 8, na.rm = T)+
+                                                                               sum(FINALRESULT_hh %in% 9, na.rm = T)+
+                                                                               sum(FINALRESULT_hh %in% 0, na.rm = T)), fmt = '%.1f'), '%'),
+        Completed = sum(FINALRESULT_hh %in% 1, na.rm = T),
+        Partial = sum(FINALRESULT_hh %in% 2, na.rm = T),
+        `Vacant Dwelling` = sum(FINALRESULT_hh %in% 3, na.rm = T),
+        Refusal = sum(FINALRESULT_hh %in% 4, na.rm = T),
+        `A.N.F` = sum(FINALRESULT_hh %in% 5, na.rm = T),
+        `N.S.R` = sum(FINALRESULT_hh %in% 6, na.rm = T),
+        `No Contact` = sum(FINALRESULT_hh %in% 7, na.rm = T),
+        `Vacant Lot` = sum(FINALRESULT_hh %in% 8, na.rm = T),
+        `U.C/N.L` = sum(FINALRESULT_hh %in% 9, na.rm = T),
+        Other = sum(FINALRESULT_hh %in% 10, na.rm = T)
+      )
+  }
+  reactable(hh_val)
+}
+
+
+
+defTable <- function(table) {
+  reactable(
+    table,
+    defaultColDef = colDef(
+      cell = function(value) format(value, nsmall = 1),
+      align = "center",
+      minWidth = 70,
+      headerStyle = list(background = "#A5D6A7")
+    ),
+    # bordered = TRUE,
+    highlight = TRUE,
+    striped = TRUE,
+    outlined = TRUE,
+    borderless = TRUE,
+    filterable = TRUE,
+    # columns = list(
+    # row_names = colDef(filterable = FALSE)
+    # ),
+    # searchable = TRUE,
+    # minRows = 10,
+    showPageSizeOptions = TRUE,
+    # pageSizeOptions = c(10, 15, 20),
+    defaultPageSize = 10,
+    columns = list(
+      interview__id = colDef(cell = function(value, index) {
+        # Render as a link
+        url <- sprintf("https://hqsurveys.sib.org.bz/hbs/Interview/Review/%s", value)
+        htmltools::tags$a(href = url, target = "_blank", as.character(value))
+      })
+    )
+  )
+}
+
 
 
 set_credentials(
@@ -36,23 +240,22 @@ set_credentials(
 # result <- dbGetQuery(connection,query);
 # print(result)
 
-tablequery1 <- "SELECT * FROM hbs_consumption_pattern_roster";
-result1 <- dbGetQuery(connection,tablequery1);
+consumption <- fetchWholeTable('hbs_consumption_pattern_roster')
 
-tablequery2 <- "SELECT * FROM hbs_ff_roster";
-result2 <- dbGetQuery(connection,tablequery2);
 
-tablequery3 <- "SELECT * FROM hbs_listing_roster";
-result3 <- dbGetQuery(connection,tablequery3);
+households <- fetchWholeTable('hbs_household')
 
-tablequery4 <- "SELECT * FROM hbs_transportation_1";
-result4 <- dbGetQuery(connection,tablequery4);
+ff <- fetchWholeTable('hbs_ff_roster')
 
-tablequery5 <- "SELECT * FROM hbs_transportation_2";
-result5 <- dbGetQuery(connection,tablequery5);
+listing <- fetchWholeTable('hbs_listing_roster')
 
-plotquery1 <- "SELECT name, age FROM hbs_listing_roster";
-result6 <- dbGetQuery(connection, plotquery1);
+trans1 <- fetchWholeTable('hbs_transportation_1')
+
+trans2 <- fetchWholeTable('hbs_transportation_2')
+
+plotquery1 <- fetchQuery('SELECT name, age FROM hbs_listing_roster')
+
+# cbind(hh_vars, listing_vars)
 
 # loading the dataset
 data <- as.data.frame(Titanic);
@@ -91,7 +294,7 @@ ui <- dashboardPage(
       ),
       menuItem("Payment", tabName = "payment", icon = icon("hand-holding-dollar")),
       menuItem("Maps", tabName = "maps", icon = icon("map"),
-               menuSubItem("Response", tabName = "responsemap")),
+               menuSubItem("Basic Map", tabName = "responsemap")),
       menuItem("Visuals", tabName = "visuals", icon = icon("chart-line"))
     )
   ),
@@ -178,251 +381,51 @@ ui <- dashboardPage(
       ),  
       tabItem("consumption", fluidPage(
         h4("Consumption Pattern Table"),
-        reactable(
-          result1,
-          defaultColDef = colDef(
-            cell = function(value) format(value, nsmall = 1),
-            align = "center",
-            minWidth = 70,
-            headerStyle = list(background = "#A5D6A7")
-          ),
-          # bordered = TRUE,
-          highlight = TRUE,
-          striped = TRUE,
-          outlined = TRUE,
-          borderless = TRUE,
-          filterable = TRUE,
-          # columns = list(
-          # row_names = colDef(filterable = FALSE)
-          # ),
-          # searchable = TRUE,
-          # minRows = 10,
-          showPageSizeOptions = TRUE,
-          # pageSizeOptions = c(10, 15, 20),
-          defaultPageSize = 10,
-          columns = list(
-            interview__id = colDef(cell = function(value, index) {
-              # Render as a link
-              url <- sprintf("https://hqsurveys.sib.org.bz/hbs/Interview/Review/%s", value)
-              htmltools::tags$a(href = url, target = "_blank", as.character(value))
-            })
-          )
-        )
+        defTable(consumption)
       )
       ),
       tabItem("ffroster", fluidPage(
         h4("FF Roster Table"),
-        reactable(
-          result2,
-          defaultColDef = colDef(
-            cell = function(value) format(value, nsmall = 1),
-            align = "center",
-            minWidth = 70,
-            headerStyle = list(background = "#A5D6A7")
-          ),
-          # bordered = TRUE,
-          highlight = TRUE,
-          striped = TRUE,
-          outlined = TRUE,
-          borderless = TRUE,
-          filterable = TRUE,
-          # columns = list(
-          # row_names = colDef(filterable = FALSE)
-          # ),
-          # searchable = TRUE,
-          # minRows = 10,
-          showPageSizeOptions = TRUE,
-          # pageSizeOptions = c(10, 15, 20),
-          defaultPageSize = 10,
-          columns = list(
-            interview__id = colDef(cell = function(value, index) {
-              # Render as a link
-              url <- sprintf("https://hqsurveys.sib.org.bz/hbs/Interview/Review/%s", value)
-              htmltools::tags$a(href = url, target = "_blank", as.character(value))
-            })
-          )
-        )
+        defTable(ff)
       )
       ),
       tabItem("listingroster", fluidPage(
         h4("Listing Roster Table"),
-        reactable(
-          result3,
-          defaultColDef = colDef(
-            cell = function(value) format(value, nsmall = 1),
-            align = "center",
-            minWidth = 70,
-            headerStyle = list(background = "#A5D6A7")
-          ),
-          # bordered = TRUE,
-          highlight = TRUE,
-          striped = TRUE,
-          outlined = TRUE,
-          borderless = TRUE,
-          filterable = TRUE,
-          # columns = list(
-          # row_names = colDef(filterable = FALSE)
-          # ),
-          # searchable = TRUE,
-          # minRows = 10,
-          showPageSizeOptions = TRUE,
-          # pageSizeOptions = c(10, 15, 20),
-          defaultPageSize = 10,
-          columns = list(
-            interview__id = colDef(cell = function(value, index) {
-              # Render as a link
-              url <- sprintf("https://hqsurveys.sib.org.bz/hbs/Interview/Review/%s", value)
-              htmltools::tags$a(href = url, target = "_blank", as.character(value))
-            })
-          )
-        )
+        defTable(listing)
       )
       ),
       tabItem("trans1", fluidPage(
         h4("Transportation 1 Table"),
-        reactable(
-          result4,
-          defaultColDef = colDef(
-            cell = function(value) format(value, nsmall = 1),
-            align = "center",
-            minWidth = 70,
-            headerStyle = list(background = "#A5D6A7")
-          ),
-          # bordered = TRUE,
-          highlight = TRUE,
-          striped = TRUE,
-          outlined = TRUE,
-          borderless = TRUE,
-          filterable = TRUE,
-          # columns = list(
-          # row_names = colDef(filterable = FALSE)
-          # ),
-          # searchable = TRUE,
-          # minRows = 10,
-          showPageSizeOptions = TRUE,
-          # pageSizeOptions = c(10, 15, 20),
-          defaultPageSize = 10,
-          columns = list(
-            interview__id = colDef(cell = function(value, index) {
-              # Render as a link
-              url <- sprintf("https://hqsurveys.sib.org.bz/hbs/Interview/Review/%s", value)
-              htmltools::tags$a(href = url, target = "_blank", as.character(value))
-            })
-          )
-        )
+        defTable(trans1)
       )
       ),
       tabItem("trans2", fluidPage(
         h4("Transportation 2 Table"),
-        reactable(
-          result5,
-          defaultColDef = colDef(
-            cell = function(value) format(value, nsmall = 1),
-            align = "center",
-            minWidth = 70,
-            headerStyle = list(background = "#A5D6A7")
-          ),
-          # bordered = TRUE,
-          highlight = TRUE,
-          striped = TRUE,
-          outlined = TRUE,
-          borderless = TRUE,
-          filterable = TRUE,
-          # columns = list(
-          # row_names = colDef(filterable = FALSE)
-          # ),
-          # searchable = TRUE,
-          # minRows = 10,
-          showPageSizeOptions = TRUE,
-          # pageSizeOptions = c(10, 15, 20),
-          defaultPageSize = 10,
-          columns = list(
-            interview__id = colDef(cell = function(value, index) {
-              # Render as a link
-              url <- sprintf("https://hqsurveys.sib.org.bz/hbs/Interview/Review/%s", value)
-              htmltools::tags$a(href = url, target = "_blank", as.character(value))
-            })
-          )
-        )
+        defTable(trans2)
       )
       ),
-      tabItem("ffroster", fluidPage(
-                  h4("FF Roster Table"),
-                  reactable(
-                    result2,
-                    defaultColDef = colDef(
-                      cell = function(value) format(value, nsmall = 1),
-                      align = "center",
-                      minWidth = 70,
-                      headerStyle = list(background = "#A5D6A7")
-                    ),
-                    # bordered = TRUE,
-                    highlight = TRUE,
-                    striped = TRUE,
-                    outlined = TRUE,
-                    borderless = TRUE,
-                    filterable = TRUE,
-                    # columns = list(
-                    # row_names = colDef(filterable = FALSE)
-                    # ),
-                    # searchable = TRUE,
-                    # minRows = 10,
-                    showPageSizeOptions = TRUE,
-                    # pageSizeOptions = c(10, 15, 20),
-                    defaultPageSize = 10,
-                    columns = list(
-                      interview__id = colDef(cell = function(value, index) {
-                        # Render as a link
-                        url <- sprintf("https://hqsurveys.sib.org.bz/hbs/Interview/Review/%s", value)
-                        htmltools::tags$a(href = url, target = "_blank", as.character(value))
-                      })
-                    )
-                  )
-                )),
       tabItem("hhmetrics",
-              tabsetPanel(
-                id = "hhmetricstabset",
-                tabPanel("National", fluidPage(
-                  h4("National")
-                )),
-                tabPanel("Urban/Rural", fluidPage(
-                  h4("Urban/Rural")
-                )),
-                tabPanel("District", fluidPage(
-                  h4("District")
-                )),
-                tabPanel("Stratum", fluidPage(
-                  h4("Stratum")
-                )),
-                tabPanel("Cluster", fluidPage(
-                  h4("Cluster")
-                )),
-                tabPanel("Interviewer", fluidPage(
-                  h4("Interviewer")
-                ))
+              fluidPage(
+                sidebarLayout(
+                  sidebarPanel( width = 2,
+                    selectInput('metric_select', 'Select Level:', choices = level_choices)
+                  ),
+                  mainPanel( width = 10,
+                    reactableOutput("metric_table")
+                  )
+                )
               ) 
       ),
       tabItem("hhresponse",
-              tabsetPanel(
-                id = "hhresponsetabset",
-                tabPanel("National", fluidPage(
-                  h4("National")
-                )),
-                tabPanel("Urban/Rural", fluidPage(
-                  h4("Urban/Rural")
-                )),
-                tabPanel("District", fluidPage(
-                  h4("District")
-                )),
-                tabPanel("Stratum", fluidPage(
-                  h4("Stratum")
-                )),
-                tabPanel("Cluster", fluidPage(
-                  h4("Cluster")
-                )),
-                tabPanel("Interviewer", fluidPage(
-                  h4("Interviewer")
-                ))
+              fluidPage(
+                sidebarLayout( 
+                  sidebarPanel( width = 2,
+                    selectInput('hhresponse_select', 'Select Level:', choices = level_choices)
+                  ),
+                  mainPanel( width = 10,
+                    reactableOutput("hhresponse_table")
+                  )
+                )
               ) 
       ),
       tabItem("earesponse",
@@ -567,7 +570,7 @@ ui <- dashboardPage(
 server <- function(input, output) {
   output$plotted <- renderPlot(
     # barplot(result6)
-    ggplot(result6, aes(x = reorder(name, -(as.integer(as.character(age)))), y = as.integer(as.character(age)))) + 
+    ggplot(plotquery1[1:10, ], aes(x = reorder(name, -(as.integer(as.character(age)))), y = as.integer(as.character(age)))) + 
       geom_col(fill = 'royalblue4') +
       geom_text(aes(label = age), vjust = 1.5, color = "white", size = 4.2) +
       scale_y_continuous(expand = c(0, 0)) +
@@ -589,6 +592,17 @@ server <- function(input, output) {
     # Pie-Donut chart
     PieDonut(PD, aes(Class, Survived, count=n), title = "Titanic: Survival by Class")
   )
+  
+  output$metric_table <- renderReactable({
+    val <- input$metric_select
+    calculateHHMetric(val)
+  }
+  )
+  
+  output$hhresponse_table <- renderReactable({
+    val <- input$hhresponse_select
+    calculateHHResponse(val)
+  })
 
 }
 
