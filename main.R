@@ -129,29 +129,29 @@ calculateHHResponse <- function(val) {
     hh_val <- 
       households |>
       summarise(
-        `Response %` = paste0(sprintf(((sum(FINALRESULT_hh %in% 1, na.rm = T)+sum(FINALRESULT_hh %in% 2, na.rm = T))/
-                                 (sum(FINALRESULT_hh %in% 1, na.rm = T)+sum(FINALRESULT_hh %in% 2, na.rm = T)+
-                                    sum(FINALRESULT_hh %in% 4, na.rm = T)+sum(FINALRESULT_hh %in% 6, na.rm = T)+
-                                    sum(FINALRESULT_hh %in% 7, na.rm = T))), fmt = '%.1f'), '%'), 
-        `Complete %` = paste0(sprintf(sum(FINALRESULT_hh %in% 1, na.rm = T)/(sum(FINALRESULT_hh %in% 2, na.rm = T)+
-                                                                       sum(FINALRESULT_hh %in% 3, na.rm = T)+
-                                                                       sum(FINALRESULT_hh %in% 4, na.rm = T)+
-                                                                       sum(FINALRESULT_hh %in% 5, na.rm = T)+
-                                                                       sum(FINALRESULT_hh %in% 6, na.rm = T)+
-                                                                       sum(FINALRESULT_hh %in% 7, na.rm = T)+
-                                                                       sum(FINALRESULT_hh %in% 8, na.rm = T)+
-                                                                       sum(FINALRESULT_hh %in% 9, na.rm = T)+
-                                                                       sum(FINALRESULT_hh %in% 0, na.rm = T)), fmt = '%.1f'), '%'),
-        Completed = sum(FINALRESULT_hh %in% 1, na.rm = T),
-        Partial = sum(FINALRESULT_hh %in% 2, na.rm = T),
-        `Vacant Dwelling` = sum(FINALRESULT_hh %in% 3, na.rm = T),
-        Refusal = sum(FINALRESULT_hh %in% 4, na.rm = T),
-        `A.N.F` = sum(FINALRESULT_hh %in% 5, na.rm = T),
-        `N.S.R` = sum(FINALRESULT_hh %in% 6, na.rm = T),
-        `No Contact` = sum(FINALRESULT_hh %in% 7, na.rm = T),
-        `Vacant Lot` = sum(FINALRESULT_hh %in% 8, na.rm = T),
-        `U.C/N.L` = sum(FINALRESULT_hh %in% 9, na.rm = T),
-        Other = sum(FINALRESULT_hh %in% 0, na.rm = T)
+        `Response %` = paste0(sprintf(((sum(FINALRESULT_hh == 1, na.rm = T)+sum(FINALRESULT_hh == 2, na.rm = T))/
+                                 (sum(FINALRESULT_hh == 1, na.rm = T)+sum(FINALRESULT_hh == 2, na.rm = T)+
+                                    sum(FINALRESULT_hh == 4, na.rm = T)+sum(FINALRESULT_hh == 6, na.rm = T)+
+                                    sum(FINALRESULT_hh == 7, na.rm = T))), fmt = '%.1f'), '%'), 
+        `Complete %` = paste0(sprintf(sum(FINALRESULT_hh == 1, na.rm = T)/(sum(FINALRESULT_hh == 2, na.rm = T)+
+                                                                       sum(FINALRESULT_hh == 3, na.rm = T)+
+                                                                       sum(FINALRESULT_hh == 4, na.rm = T)+
+                                                                       sum(FINALRESULT_hh == 5, na.rm = T)+
+                                                                       sum(FINALRESULT_hh == 6, na.rm = T)+
+                                                                       sum(FINALRESULT_hh == 7, na.rm = T)+
+                                                                       sum(FINALRESULT_hh == 8, na.rm = T)+
+                                                                       sum(FINALRESULT_hh == 9, na.rm = T)+
+                                                                       sum(FINALRESULT_hh == 0, na.rm = T)), fmt = '%.1f'), '%'),
+        Completed = sum(FINALRESULT_hh == 1, na.rm = T),
+        Partial = sum(FINALRESULT_hh == 2, na.rm = T),
+        `Vacant Dwelling` = sum(FINALRESULT_hh == 3, na.rm = T),
+        Refusal = sum(FINALRESULT_hh == 4, na.rm = T),
+        `A.N.F` = sum(FINALRESULT_hh == 5, na.rm = T),
+        `N.S.R` = sum(FINALRESULT_hh == 6, na.rm = T),
+        `No Contact` = sum(FINALRESULT_hh == 7, na.rm = T),
+        `Vacant Lot` = sum(FINALRESULT_hh == 8, na.rm = T),
+        `U.C/N.L` = sum(FINALRESULT_hh == 9, na.rm = T),
+        Other = sum(FINALRESULT_hh == 0, na.rm = T)
       )
     
   } else {
@@ -160,32 +160,32 @@ calculateHHResponse <- function(val) {
       households |>
       group_by(!!as.name(val)) |>
       summarise(
-        `Response %` = paste0(sprintf(((sum(FINALRESULT_hh %in% 1, na.rm = T)+
-                                          sum(FINALRESULT_hh %in% 2, na.rm = T))/
-                                         (sum(FINALRESULT_hh %in% 1, na.rm = T)+
-                                            sum(FINALRESULT_hh %in% 2, na.rm = T)+
-                                            sum(FINALRESULT_hh %in% 4, na.rm = T)+
-                                            sum(FINALRESULT_hh %in% 6, na.rm = T)+
-                                            sum(FINALRESULT_hh %in% 7, na.rm = T))), fmt = '%.1f'), '%'), 
-        `Complete %` = paste0(sprintf(sum(FINALRESULT_hh %in% 1, na.rm = T)/(sum(FINALRESULT_hh %in% 2, na.rm = T)+
-                                                                               sum(FINALRESULT_hh %in% 3, na.rm = T)+
-                                                                               sum(FINALRESULT_hh %in% 4, na.rm = T)+
-                                                                               sum(FINALRESULT_hh %in% 5, na.rm = T)+
-                                                                               sum(FINALRESULT_hh %in% 6, na.rm = T)+
-                                                                               sum(FINALRESULT_hh %in% 7, na.rm = T)+
-                                                                               sum(FINALRESULT_hh %in% 8, na.rm = T)+
-                                                                               sum(FINALRESULT_hh %in% 9, na.rm = T)+
-                                                                               sum(FINALRESULT_hh %in% 0, na.rm = T)), fmt = '%.1f'), '%'),
-        Completed = sum(FINALRESULT_hh %in% 1, na.rm = T),
-        Partial = sum(FINALRESULT_hh %in% 2, na.rm = T),
-        `Vacant Dwelling` = sum(FINALRESULT_hh %in% 3, na.rm = T),
-        Refusal = sum(FINALRESULT_hh %in% 4, na.rm = T),
-        `A.N.F` = sum(FINALRESULT_hh %in% 5, na.rm = T),
-        `N.S.R` = sum(FINALRESULT_hh %in% 6, na.rm = T),
-        `No Contact` = sum(FINALRESULT_hh %in% 7, na.rm = T),
-        `Vacant Lot` = sum(FINALRESULT_hh %in% 8, na.rm = T),
-        `U.C/N.L` = sum(FINALRESULT_hh %in% 9, na.rm = T),
-        Other = sum(FINALRESULT_hh %in% 10, na.rm = T)
+        `Response %` = paste0(sprintf(((sum(FINALRESULT_hh == 1, na.rm = T)+
+                                          sum(FINALRESULT_hh == 2, na.rm = T))/
+                                         (sum(FINALRESULT_hh == 1, na.rm = T)+
+                                            sum(FINALRESULT_hh == 2, na.rm = T)+
+                                            sum(FINALRESULT_hh == 4, na.rm = T)+
+                                            sum(FINALRESULT_hh == 6, na.rm = T)+
+                                            sum(FINALRESULT_hh == 7, na.rm = T))), fmt = '%.1f'), '%'), 
+        `Complete %` = paste0(sprintf(sum(FINALRESULT_hh == 1, na.rm = T)/(sum(FINALRESULT_hh == 2, na.rm = T)+
+                                                                               sum(FINALRESULT_hh == 3, na.rm = T)+
+                                                                               sum(FINALRESULT_hh == 4, na.rm = T)+
+                                                                               sum(FINALRESULT_hh == 5, na.rm = T)+
+                                                                               sum(FINALRESULT_hh == 6, na.rm = T)+
+                                                                               sum(FINALRESULT_hh == 7, na.rm = T)+
+                                                                               sum(FINALRESULT_hh == 8, na.rm = T)+
+                                                                               sum(FINALRESULT_hh == 9, na.rm = T)+
+                                                                               sum(FINALRESULT_hh == 0, na.rm = T)), fmt = '%.1f'), '%'),
+        Completed = sum(FINALRESULT_hh == 1, na.rm = T),
+        Partial = sum(FINALRESULT_hh == 2, na.rm = T),
+        `Vacant Dwelling` = sum(FINALRESULT_hh == 3, na.rm = T),
+        Refusal = sum(FINALRESULT_hh == 4, na.rm = T),
+        `A.N.F` = sum(FINALRESULT_hh == 5, na.rm = T),
+        `N.S.R` = sum(FINALRESULT_hh == 6, na.rm = T),
+        `No Contact` = sum(FINALRESULT_hh == 7, na.rm = T),
+        `Vacant Lot` = sum(FINALRESULT_hh == 8, na.rm = T),
+        `U.C/N.L` = sum(FINALRESULT_hh == 9, na.rm = T),
+        Other = sum(FINALRESULT_hh == 10, na.rm = T)
       )
   }
   reactable(hh_val)
@@ -263,7 +263,7 @@ data <- as.data.frame(Titanic);
 PD <- data |> group_by(Class, Survived) |> summarise(n = sum(Freq));
 
 
-setwd("C:\\Users\\sib_temp\\Music\\HBS_2024")
+# setwd("C:\\Users\\sib_temp\\Music\\HBS_2024")
 
 usaLat <- 36.5588659
 usaLon <- -107.6660877
