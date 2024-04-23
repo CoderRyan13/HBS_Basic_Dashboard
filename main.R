@@ -226,8 +226,6 @@ defTable <- function(table) {
   )
 }
 
-
-
 set_credentials(
   server = "http://hqsurveys.sib.org.bz",
   workspace = "hbs",
@@ -256,6 +254,8 @@ trans2 <- fetchWholeTable('hbs_transportation_2')
 plotquery1 <- fetchQuery('SELECT name, age FROM hbs_listing_roster')
 
 # cbind(hh_vars, listing_vars)
+
+listing <- fetchWholeTable('hbs_listing_roster')
 
 # loading the dataset
 data <- as.data.frame(Titanic);
